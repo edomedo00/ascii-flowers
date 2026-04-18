@@ -1,0 +1,30 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0f0a;
+  overflow: hidden;
+}
+
+#controls {
+  position: absolute;
+
+  top: 16px;
+  left: 16px;
+  display: flex;
+  gap: 10px;
+  font-family: monospace;
+  color: #7cfc80;
+}
+
+button {
+  background: none;
+  border: 1px solid #3a6a3a;
+  color: #7cfc80;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-family: monospace;
+}
