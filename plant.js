@@ -15,11 +15,8 @@ document.body.appendChild(renderer.domElement);
 
 let autoSpin = true;
 let colorMode = 0;
-// let growFactor = 1.0;
-// let targetGrow = 1.0;
 
 let soilSize = 22;
-// let mainStemHeight = Math.floor(Math.random() * (14 - 7 + 1) + 7);
 let plantsN = 120;
 let maxStemHeight = 10;
 let minStemHeight = 4;
@@ -28,7 +25,6 @@ let cameraRadius = 27;
 const MIN_RADIUS = 15;
 const MAX_RADIUS = 27;
 
-// const cameraTargetY = (maxStemHeight + minStemHeight) / 3;
 const cameraTargetY = 6;
 
 const sprites = [];
@@ -59,15 +55,6 @@ function makeCharTexture(char, color) {
   return tex;
 }
 
-// plant structure and definitions
-// const CHARS = {
-//   stem: ["|", "¦", "║"],
-//   leaf: ["*", "~", "§", "≈", "ʷ", "∿", "❧"],
-//   flower: ["✿", "❀", "@", "%", "&", "#", "✾"],
-//   branch: ["/", "\\", "─", "┐", "┘", "╱", "╲"],
-//   soil: ["_", ".", ",", "`", "~", "░", "▒"],
-// };
-
 const CHARS = {
   stem: ["|", "¦", "║"],
   leaf: ["~", "§", "∿", "❧"],
@@ -88,7 +75,7 @@ function buildSoil() {
   for (let x = -soilSize; x <= soilSize; x += 0.5) {
     for (let z = -soilSize; z <= soilSize; z += 0.5) {
       const dist = Math.sqrt(x * x + z * z);
-      // only inside a circle radius 4.5
+      // only inside a circle radius
       if (dist < soilSize * 0.9) {
         points.push({
           char: pickChar("soil"),
@@ -115,13 +102,13 @@ function buildPlant() {
   const soilRadius = soilSize * 0.9;
   const angle = Math.random() * Math.PI * 2;
   const r = soilRadius * Math.sqrt(Math.random());
-  // sqrt keeps distribution uniform, without it, points cluster toward center
+  // sqrt keeps distribution uniform
 
   const initialX = Math.cos(angle) * r;
   const initialZ = Math.sin(angle) * r;
   const branchAngle = Math.random() * Math.PI * 2;
 
-  // main stem: vertical column
+  // main stem
   for (let h = 0; h <= mainStemHeight; h += 0.55) {
     const sway = Math.sin(h * 0.8) * 0.15;
     points.push({
@@ -164,7 +151,6 @@ function buildPlant() {
 
     for (let s = 0; s <= steps; s++) {
       const t = s / steps; // normalized step in steps
-      // const bx = b.dir * t * b.len; // x position
       const by = b.startH + t * b.slope; // y position
 
       const bDist = b.dir * t * b.len;
@@ -173,7 +159,6 @@ function buildPlant() {
 
       for (let dz = -0.15; dz <= 0.15; dz += 0.3) {
         points.push({
-          // First character is a '/' or '\' junction, rest are generic branch chars
           char: s === 0 ? (b.dir > 0 ? "/" : "\\") : pickChar("branch"),
           x: initialX + bx,
           y: by,
@@ -183,10 +168,10 @@ function buildPlant() {
         });
       }
 
-      // leaf clusters : arranged in a circular fan around each branch point
+      // leaf clusters : arranged in a circle around the branch
       if (s > 0) {
         for (let li = 0; li < 3; li++) {
-          const angle = (li / 3) * Math.PI * 2; // 0, 120, 240 degrees
+          const angle = (li / 3) * Math.PI * 2; // 0, 120, 240
           const r = 0.2 + Math.random() * 0.5;
           points.push({
             char: pickChar("leaf"),
@@ -203,9 +188,8 @@ function buildPlant() {
 
   const flowerColor =
     colorMode === 2 ? (Math.random() < 0.5 ? 0 : 1) : colorMode;
-  // const flowerColor = Math.random() < 0.5 ? 0 : 1;
 
-  // flowers at the top: arranged in a ring + center cluster
+  // flowers at the top
   const flowerH = mainStemHeight - 0.5;
   for (let a = 0; a < Math.PI * 2; a += 0.35) {
     const r = 0.8 + Math.random() * 0.8;
@@ -267,7 +251,6 @@ const COLORS = {
 };
 
 function getColor(type, mode) {
-  // for rainbow mode
   const blueScheme = COLORS.blue;
   const redScheme = COLORS.red;
 
@@ -350,10 +333,8 @@ renderer.domElement.addEventListener("mousemove", (e) => {
   if (!isDragging) return;
   rotY += (e.clientX - prevMouse.x) * 0.012; // horizontal drag
   rotX += (e.clientY - prevMouse.y) * 0.008; // vertical drag
-  rotX = Math.max(0.1, Math.min(0.8, rotX)); // clamp so you cant flip upside down
+  rotX = Math.max(0.1, Math.min(0.8, rotX)); // so you cant flip upside down
   prevMouse = { x: e.clientX, y: e.clientY };
-  // autoSpin = false;
-  // document.getElementById("btnSpin").textContent = "[ spin ]";
 });
 
 renderer.domElement.addEventListener("mouseup", () => {
@@ -391,7 +372,6 @@ document.getElementById("btnColor").addEventListener("click", () => {
   colorMode = (colorMode + 1) % 3;
   const labels = ["[ red ]", "[ blue ]", "[ mixed ]"];
   document.getElementById("btnColor").textContent = labels[colorMode];
-  // clear the color chache since colors have changed
   Object.keys(textureCache).forEach((k) => {
     textureCache[k].dispose();
     delete textureCache[k];
@@ -421,10 +401,8 @@ renderer.domElement.addEventListener("touchmove", (e) => {
   if (!isDragging) return;
   rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
   rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
-  rotX = Math.max(0.1, Math.min(0.8, rotX)); // clamp so you cant flip upside down
+  rotX = Math.max(0.1, Math.min(0.8, rotX)); // so you cant flip upside down
   prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  // autoSpin = false;
-  // document.getElementById("btnSpin").textContent = "[ stop ]";
 });
 
 // resize
@@ -434,15 +412,10 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// camera orbit
-//  this function converts (rotX, rotY) angles into a camera position on a sphere.
-//  the camera always looks at the center of the plant
-
 function updateCamera() {
   // spherical coordinates to cartesian
   const cx = Math.sin(rotY) * Math.cos(rotX) * cameraRadius;
   const cy = Math.sin(rotX) * cameraRadius + cameraTargetY;
-  // const cy = Math.sin(rotX) * cameraRadius + 20;
   const cz = Math.cos(rotY) * Math.cos(rotX) * cameraRadius;
 
   camera.position.set(cx, cy, cz);
@@ -458,12 +431,10 @@ function animate() {
 
   if (autoSpin) rotY += 0.0025;
 
-  // smoothly change the grow factor
-  // growFactor += (targetGrow - growFactor) * 0.04;
-
   spriteData.forEach((d, i) => {
     const { sprite, basePos, type } = d;
 
+    // for sway (breathing sort of effect)
     // const swayScale =
     //   type === "flower"
     //     ? 0.08
@@ -478,8 +449,7 @@ function animate() {
 
     // const px = basePos.x + Math.sin(time * freq + i * 0.3) * swayScale;
     // const pz = basePos.z + Math.cos(time * freq * 0.8 + i * 0.2) * swayScale;
-
-    // const py = basePos.y * growFactor;
+    // const py = basePos.y;
 
     const px = basePos.x;
     const py = basePos.y;
