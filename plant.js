@@ -7,28 +7,29 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000,
 );
-camera.position.set(0, 8, 22);
-camera.lookAt(0, 6, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-let autoSpin = false;
+let autoSpin = true;
 let colorMode = 0;
 // let growFactor = 1.0;
 // let targetGrow = 1.0;
 
 let soilSize = 22;
 // let mainStemHeight = Math.floor(Math.random() * (14 - 7 + 1) + 7);
-let plantsN = 125;
+let plantsN = 120;
 let maxStemHeight = 10;
 let minStemHeight = 4;
 
-let cameraRadius = 25;
-const MIN_RADIUS = 5;
-const MAX_RADIUS = 30;
+let cameraRadius = 27;
+const MIN_RADIUS = 15;
+const MAX_RADIUS = 27;
+
+// const cameraTargetY = (maxStemHeight + minStemHeight) / 3;
+const cameraTargetY = 6;
 
 const sprites = [];
 const spriteData = [];
@@ -59,12 +60,20 @@ function makeCharTexture(char, color) {
 }
 
 // plant structure and definitions
+// const CHARS = {
+//   stem: ["|", "¦", "║"],
+//   leaf: ["*", "~", "§", "≈", "ʷ", "∿", "❧"],
+//   flower: ["✿", "❀", "@", "%", "&", "#", "✾"],
+//   branch: ["/", "\\", "─", "┐", "┘", "╱", "╲"],
+//   soil: ["_", ".", ",", "`", "~", "░", "▒"],
+// };
+
 const CHARS = {
   stem: ["|", "¦", "║"],
-  leaf: ["*", "~", "§", "≈", "ʷ", "∿", "❧"],
-  flower: ["✿", "❀", "@", "%", "&", "#", "✾"],
-  branch: ["/", "\\", "─", "┐", "┘", "╱", "╲"],
-  soil: ["_", ".", ",", "`", "~", "░", "▒"],
+  leaf: ["~", "§", "∿", "❧"],
+  flower: ["✿", "❀", "✾", "❁"],
+  branch: ["/", "\\", "╱", "╲"],
+  soil: ["_", ".", ",", "﹏", "~", "░", "▒"],
 };
 
 function pickChar(type) {
@@ -341,10 +350,10 @@ renderer.domElement.addEventListener("mousemove", (e) => {
   if (!isDragging) return;
   rotY += (e.clientX - prevMouse.x) * 0.012; // horizontal drag
   rotX += (e.clientY - prevMouse.y) * 0.008; // vertical drag
-  rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
+  rotX = Math.max(0.1, Math.min(0.8, rotX)); // clamp so you cant flip upside down
   prevMouse = { x: e.clientX, y: e.clientY };
-  autoSpin = false;
-  document.getElementById("btnSpin").textContent = "[ spin ]";
+  // autoSpin = false;
+  // document.getElementById("btnSpin").textContent = "[ spin ]";
 });
 
 renderer.domElement.addEventListener("mouseup", () => {
@@ -363,16 +372,6 @@ renderer.domElement.addEventListener(
   },
   { passive: true },
 );
-
-// renderer.domElement.addEventListener("touchmove", (e) => {
-//   if (!isDragging) return;
-//   rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
-//   rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
-//   rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
-//   prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-//   autoSpin = false;
-//   document.getElementById("btnSpin").textContent = "[auto-spin]";
-// });
 
 renderer.domElement.addEventListener("touchend", () => {
   isDragging = false;
@@ -422,10 +421,10 @@ renderer.domElement.addEventListener("touchmove", (e) => {
   if (!isDragging) return;
   rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
   rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
-  rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
+  rotX = Math.max(0.1, Math.min(0.8, rotX)); // clamp so you cant flip upside down
   prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  autoSpin = false;
-  document.getElementById("btnSpin").textContent = "[auto-spin]";
+  // autoSpin = false;
+  // document.getElementById("btnSpin").textContent = "[ stop ]";
 });
 
 // resize
@@ -442,11 +441,12 @@ window.addEventListener("resize", () => {
 function updateCamera() {
   // spherical coordinates to cartesian
   const cx = Math.sin(rotY) * Math.cos(rotX) * cameraRadius;
-  const cy = Math.sin(rotX) * cameraRadius + 6;
+  const cy = Math.sin(rotX) * cameraRadius + cameraTargetY;
+  // const cy = Math.sin(rotX) * cameraRadius + 20;
   const cz = Math.cos(rotY) * Math.cos(rotX) * cameraRadius;
 
   camera.position.set(cx, cy, cz);
-  camera.lookAt(0, 6, 0);
+  camera.lookAt(0, 1, 0);
 }
 
 // animation loop
@@ -456,7 +456,7 @@ function animate() {
   requestAnimationFrame(animate); // schedule the next frame
   time += 0.012;
 
-  if (autoSpin) rotY += 0.003;
+  if (autoSpin) rotY += 0.0025;
 
   // smoothly change the grow factor
   // growFactor += (targetGrow - growFactor) * 0.04;
