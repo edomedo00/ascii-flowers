@@ -15,10 +15,16 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-let autoSpin = true;
+let autoSpin = false;
 let colorMode = 0;
 let growFactor = 1.0;
 let targetGrow = 1.0;
+
+// variables
+let soilSize = 5;
+// let mainStemHeight = 12;
+let mainStemHeight = Math.floor(Math.random() * (14 - 7 + 1) + 7);
+console.log(mainStemHeight);
 
 const sprites = [];
 const spriteData = [];
@@ -50,7 +56,7 @@ function makeCharTexture(char, color) {
 
 // plant structure and definitions
 const CHARS = {
-  stem: ["|", "¦", "I", "║"],
+  stem: ["|", "¦", "║"],
   leaf: ["*", "~", "§", "≈", "ʷ", "∿", "❧"],
   flower: ["✿", "❀", "@", "%", "&", "#", "✾"],
   branch: ["/", "\\", "─", "┐", "┘", "╱", "╲"],
@@ -66,11 +72,11 @@ function buildPlant() {
   const points = [];
 
   // soil
-  for (let x = -5; x <= 5; x += 0.7) {
-    for (let z = -5; z <= 5; z += 0.7) {
+  for (let x = -soilSize; x <= soilSize; x += 0.7) {
+    for (let z = -soilSize; z <= soilSize; z += 0.7) {
       const dist = Math.sqrt(x * x + z * z);
       // only inside a circle radius 4.5
-      if (dist < 4.5) {
+      if (dist < (soilSize / 10) * 9) {
         points.push({
           char: pickChar("soil"),
           x: x + (Math.random() - 0.5) * 0.3,
@@ -83,8 +89,8 @@ function buildPlant() {
   }
 
   // main stem: vertical column
-  for (let h = 0; h <= 12; h += 0.55) {
-    const sway = Math.sin(h * 0.4) * 0.15;
+  for (let h = 0; h <= mainStemHeight; h += 0.55) {
+    const sway = Math.sin(h * 0.8) * 0.15;
     points.push({
       char: pickChar("stem"),
       x: sway,
@@ -92,33 +98,32 @@ function buildPlant() {
       z: 0,
       type: "stem",
     });
-    points.push({
-      char: pickChar("stem"),
-      x: sway,
-      y: h,
-      z: 0.3,
-      type: "stem",
-    });
-    points.push({
-      char: pickChar("stem"),
-      x: sway,
-      y: h,
-      z: -0.3,
-      type: "stem",
-    });
   }
 
-  // branches (starting height, directionm length, upward slope)
-  const branchDefs = [
-    { startH: 2.5, dir: 1, len: 3.5, slope: 1.2 },
-    { startH: 2.5, dir: -1, len: 3.5, slope: 1.2 },
-    { startH: 5.0, dir: 1, len: 4.0, slope: 1.0 },
-    { startH: 5.0, dir: -1, len: 4.0, slope: 1.0 },
-    { startH: 7.5, dir: 1, len: 3.0, slope: 0.8 },
-    { startH: 7.5, dir: -1, len: 3.0, slope: 0.8 },
-    { startH: 9.5, dir: 1, len: 2.0, slope: 0.6 },
-    { startH: 9.5, dir: -1, len: 2.0, slope: 0.6 },
-  ];
+  let branchDefs = [];
+
+  for (let i = 0; i < Math.max(Math.ceil(Math.random() * 15), 4); i++) {
+    const minH = 2;
+    const maxH = mainStemHeight - 2.5;
+
+    const startH = Math.random() * (maxH - minH) + minH;
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const len = Math.min(
+      4,
+      Math.max(
+        1.2,
+        Math.max(0.3, Math.random()) * 1.3 * ((mainStemHeight / startH) * 0.5),
+      ),
+    );
+    const slope = Math.max(0.7, Math.random() * 2);
+
+    branchDefs.push({
+      startH,
+      dir,
+      len,
+      slope,
+    });
+  }
 
   for (const b of branchDefs) {
     const steps = Math.floor(b.len / 0.5); // double the length of the branch in units
@@ -128,7 +133,7 @@ function buildPlant() {
       const bx = b.dir * t * b.len; // x position
       const by = b.startH + t * b.slope; // y position
 
-      for (let dz = -0.5; dz <= 0.5; dz += 0.5) {
+      for (let dz = -0.15; dz <= 0.15; dz += 0.3) {
         points.push({
           // First character is a '/' or '\' junction, rest are generic branch chars
           char: s === 0 ? (b.dir > 0 ? "/" : "\\") : pickChar("branch"),
@@ -143,11 +148,11 @@ function buildPlant() {
       if (s > 0) {
         for (let li = 0; li < 3; li++) {
           const angle = (li / 3) * Math.PI * 2; // 0, 120, 240 degrees
-          const r = 0.6 + Math.random() * 0.5;
+          const r = 0.2 + Math.random() * 0.5;
           points.push({
             char: pickChar("leaf"),
             x: bx + Math.cos(angle) * r,
-            y: by + (Math.random() - 0.5) * 0.4,
+            y: by + (Math.random() - 0.5) * 0.5,
             z: Math.sin(angle) * r,
             type: "leaf",
           });
@@ -156,16 +161,26 @@ function buildPlant() {
     }
   }
 
-  // flowers at tht top: arranged in a ring + center cluster
-  const flowerH = 12.5;
+  // flowers at the top: arranged in a ring + center cluster
+  const flowerH = mainStemHeight - 0.5;
   for (let a = 0; a < Math.PI * 2; a += 0.35) {
-    const r = 0.5 + Math.random() * 0.8;
+    const r = 0.8 + Math.random() * 0.8;
     points.push({
       char: pickChar("flower"),
       x: Math.cos(a) * r,
-      y: flowerH + Math.random() * 0.8,
+      y: flowerH + Math.random() * 1,
       z: Math.sin(a) * r,
-      type: "flower",
+      type: "flowerFirst",
+    });
+  }
+
+  for (let i = 0; i < 12; i++) {
+    points.push({
+      char: pickChar("flower"),
+      x: (Math.random() - 0.5) * 2,
+      y: flowerH + 0.5 + Math.random() * 0.9,
+      z: (Math.random() - 0.5) * 2,
+      type: "flowerSecond",
     });
   }
 
@@ -173,9 +188,9 @@ function buildPlant() {
     points.push({
       char: pickChar("flower"),
       x: (Math.random() - 0.5) * 0.6,
-      y: flowerH + 0.5 + Math.random() * 0.5,
+      y: flowerH + 0.7 + Math.random() * 1,
       z: (Math.random() - 0.5) * 0.6,
-      type: "flower",
+      type: "flowerThird",
     });
   }
 
@@ -187,16 +202,20 @@ const COLORS = {
   green: {
     stem: "#4a9e5c",
     leaf: "#3dcc6a",
-    flower: "#ffd166",
-    branch: "#6b7c3a",
+    flowerFirst: "#ffb813",
+    flowerSecond: "#ffc745",
+    flowerThird: "#ffda84",
+    branch: "#4a9e5c",
     soil: "#5c4033",
   },
   amber: {
-    stem: "#a07840",
-    leaf: "#d4a853",
-    flower: "#e8d4a0",
-    branch: "#7a5c30",
-    soil: "#3a2a20",
+    stem: "#4a9e5c",
+    leaf: "#3dcc6a",
+    flowerFirst: "#c72800",
+    flowerSecond: "#ce4e2f",
+    flowerThird: "#fd8f00",
+    branch: "#4a9e5c",
+    soil: "#5c4033",
   },
 };
 
@@ -371,7 +390,7 @@ function animate() {
   requestAnimationFrame(animate); // schedule the next frame
   time += 0.012;
 
-  if (autoSpin) rotY += 0.007;
+  if (autoSpin) rotY += 0.003;
 
   // smoothly change the grow factor
   growFactor += (targetGrow - growFactor) * 0.04;
@@ -379,22 +398,26 @@ function animate() {
   spriteData.forEach((d, i) => {
     const { sprite, basePos, type } = d;
 
-    const swayScale =
-      type === "flower"
-        ? 0.08
-        : type === "leaf"
-          ? 0.06
-          : type === "soil"
-            ? 0.0
-            : 0.03;
+    // const swayScale =
+    //   type === "flower"
+    //     ? 0.08
+    //     : type === "leaf"
+    //       ? 0.06
+    //       : type === "soil"
+    //         ? 0.0
+    //         : 0.03;
 
-    // each sprite gets a different frequency
-    const freq = 0.7 + (i % 5) * 0.1;
+    // // each sprite gets a different frequency
+    // const freq = 0.7 + (i % 5) * 0.1;
 
-    const px = basePos.x + Math.sin(time * freq + i * 0.3) * swayScale;
-    const pz = basePos.z + Math.cos(time * freq * 0.8 + i * 0.2) * swayScale;
+    // const px = basePos.x + Math.sin(time * freq + i * 0.3) * swayScale;
+    // const pz = basePos.z + Math.cos(time * freq * 0.8 + i * 0.2) * swayScale;
 
+    // const py = basePos.y * growFactor;
+
+    const px = basePos.x;
     const py = basePos.y * growFactor;
+    const pz = basePos.z;
 
     sprite.position.set(px, py, pz);
   });
