@@ -17,14 +17,18 @@ document.body.appendChild(renderer.domElement);
 
 let autoSpin = false;
 let colorMode = 0;
-let growFactor = 1.0;
-let targetGrow = 1.0;
+// let growFactor = 1.0;
+// let targetGrow = 1.0;
 
-// variables
-let soilSize = 5;
-// let mainStemHeight = 12;
-let mainStemHeight = Math.floor(Math.random() * (14 - 7 + 1) + 7);
-console.log(mainStemHeight);
+let soilSize = 22;
+// let mainStemHeight = Math.floor(Math.random() * (14 - 7 + 1) + 7);
+let plantsN = 125;
+let maxStemHeight = 10;
+let minStemHeight = 4;
+
+let cameraRadius = 25;
+const MIN_RADIUS = 5;
+const MAX_RADIUS = 30;
 
 const sprites = [];
 const spriteData = [];
@@ -68,34 +72,55 @@ function pickChar(type) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function buildPlant() {
-  const points = [];
+function buildSoil() {
+  let points = [];
 
   // soil
-  for (let x = -soilSize; x <= soilSize; x += 0.7) {
-    for (let z = -soilSize; z <= soilSize; z += 0.7) {
+  for (let x = -soilSize; x <= soilSize; x += 0.5) {
+    for (let z = -soilSize; z <= soilSize; z += 0.5) {
       const dist = Math.sqrt(x * x + z * z);
       // only inside a circle radius 4.5
-      if (dist < (soilSize / 10) * 9) {
+      if (dist < soilSize * 0.9) {
         points.push({
           char: pickChar("soil"),
           x: x + (Math.random() - 0.5) * 0.3,
           y: -0.3 + Math.random() * 0.2,
           z: z + (Math.random() - 0.5) * 0.3,
+          color: getColor("soil", colorMode),
           type: "soil",
         });
       }
     }
   }
 
+  return points;
+}
+
+function buildPlant() {
+  let mainStemHeight = Math.floor(
+    Math.random() * (maxStemHeight - minStemHeight + 1) + minStemHeight,
+  );
+
+  let points = [];
+
+  const soilRadius = soilSize * 0.9;
+  const angle = Math.random() * Math.PI * 2;
+  const r = soilRadius * Math.sqrt(Math.random());
+  // sqrt keeps distribution uniform, without it, points cluster toward center
+
+  const initialX = Math.cos(angle) * r;
+  const initialZ = Math.sin(angle) * r;
+  const branchAngle = Math.random() * Math.PI * 2;
+
   // main stem: vertical column
   for (let h = 0; h <= mainStemHeight; h += 0.55) {
     const sway = Math.sin(h * 0.8) * 0.15;
     points.push({
       char: pickChar("stem"),
-      x: sway,
+      x: initialX + sway,
       y: h,
-      z: 0,
+      z: initialZ,
+      color: getColor("stem", colorMode),
       type: "stem",
     });
   }
@@ -130,16 +155,21 @@ function buildPlant() {
 
     for (let s = 0; s <= steps; s++) {
       const t = s / steps; // normalized step in steps
-      const bx = b.dir * t * b.len; // x position
+      // const bx = b.dir * t * b.len; // x position
       const by = b.startH + t * b.slope; // y position
+
+      const bDist = b.dir * t * b.len;
+      bx = Math.cos(branchAngle) * bDist;
+      bz = Math.sin(branchAngle) * bDist;
 
       for (let dz = -0.15; dz <= 0.15; dz += 0.3) {
         points.push({
           // First character is a '/' or '\' junction, rest are generic branch chars
           char: s === 0 ? (b.dir > 0 ? "/" : "\\") : pickChar("branch"),
-          x: bx,
+          x: initialX + bx,
           y: by,
-          z: dz,
+          z: initialZ + dz + bz,
+          color: getColor("branch", colorMode),
           type: "branch",
         });
       }
@@ -151,9 +181,10 @@ function buildPlant() {
           const r = 0.2 + Math.random() * 0.5;
           points.push({
             char: pickChar("leaf"),
-            x: bx + Math.cos(angle) * r,
+            x: initialX + bx + Math.cos(angle) * r,
             y: by + (Math.random() - 0.5) * 0.5,
-            z: Math.sin(angle) * r,
+            z: initialZ + bz + Math.sin(angle) * r,
+            color: getColor("leaf", colorMode),
             type: "leaf",
           });
         }
@@ -161,15 +192,20 @@ function buildPlant() {
     }
   }
 
+  const flowerColor =
+    colorMode === 2 ? (Math.random() < 0.5 ? 0 : 1) : colorMode;
+  // const flowerColor = Math.random() < 0.5 ? 0 : 1;
+
   // flowers at the top: arranged in a ring + center cluster
   const flowerH = mainStemHeight - 0.5;
   for (let a = 0; a < Math.PI * 2; a += 0.35) {
     const r = 0.8 + Math.random() * 0.8;
     points.push({
       char: pickChar("flower"),
-      x: Math.cos(a) * r,
+      x: initialX + Math.cos(a) * r,
       y: flowerH + Math.random() * 1,
-      z: Math.sin(a) * r,
+      z: initialZ + Math.sin(a) * r,
+      color: getColor("flowerFirst", flowerColor),
       type: "flowerFirst",
     });
   }
@@ -177,9 +213,10 @@ function buildPlant() {
   for (let i = 0; i < 12; i++) {
     points.push({
       char: pickChar("flower"),
-      x: (Math.random() - 0.5) * 2,
+      x: initialX + (Math.random() - 0.5) * 2,
       y: flowerH + 0.5 + Math.random() * 0.9,
-      z: (Math.random() - 0.5) * 2,
+      z: initialZ + (Math.random() - 0.5) * 2,
+      color: getColor("flowerSecond", flowerColor),
       type: "flowerSecond",
     });
   }
@@ -187,9 +224,10 @@ function buildPlant() {
   for (let i = 0; i < 8; i++) {
     points.push({
       char: pickChar("flower"),
-      x: (Math.random() - 0.5) * 0.6,
+      x: initialX + (Math.random() - 0.5) * 0.6,
       y: flowerH + 0.7 + Math.random() * 1,
-      z: (Math.random() - 0.5) * 0.6,
+      z: initialZ + (Math.random() - 0.5) * 0.6,
+      color: getColor("flowerThird", flowerColor),
       type: "flowerThird",
     });
   }
@@ -199,19 +237,19 @@ function buildPlant() {
 
 // colors
 const COLORS = {
-  green: {
+  blue: {
     stem: "#4a9e5c",
     leaf: "#3dcc6a",
-    flowerFirst: "#ffb813",
-    flowerSecond: "#ffc745",
-    flowerThird: "#ffda84",
+    flowerFirst: "#163ead",
+    flowerSecond: "#a65cd8",
+    flowerThird: "#a984ff",
     branch: "#4a9e5c",
     soil: "#5c4033",
   },
-  amber: {
+  red: {
     stem: "#4a9e5c",
     leaf: "#3dcc6a",
-    flowerFirst: "#c72800",
+    flowerFirst: "#a73012",
     flowerSecond: "#ce4e2f",
     flowerThird: "#fd8f00",
     branch: "#4a9e5c",
@@ -219,18 +257,25 @@ const COLORS = {
   },
 };
 
-function getColor(type, index, mode) {
+function getColor(type, mode) {
   // for rainbow mode
-  if (mode === 1) {
-    const hue = (index * 137.5) % 360;
-    return `hsl(${hue}, 90%, 65%)`;
-  }
-  const scheme = mode === 2 ? COLORS.amber : COLORS.green;
+  const blueScheme = COLORS.blue;
+  const redScheme = COLORS.red;
+
+  const scheme = mode === 0 ? redScheme : blueScheme;
+
   return scheme[type] || "#88ff88";
 }
 
 function buildSprites() {
-  const points = buildPlant();
+  let plantPoints = [];
+
+  for (let i = 0; i < plantsN; i++) {
+    plantPoints = [...plantPoints, ...buildPlant()];
+  }
+
+  const soilPoints = buildSoil();
+  const points = [...plantPoints, ...soilPoints];
 
   // clean up old sprites
   for (let i = spriteData.length - 1; i >= 0; i--) {
@@ -244,7 +289,7 @@ function buildSprites() {
 
   points.forEach((p, i) => {
     const color = getColor(p.type, i, colorMode);
-    const tex = makeCharTexture(p.char, color);
+    const tex = makeCharTexture(p.char, p.color);
 
     const mat = new THREE.SpriteMaterial({
       map: tex,
@@ -270,6 +315,7 @@ function buildSprites() {
     spriteData.push({
       sprite,
       basePos: new THREE.Vector3(p.x, p.y, p.z),
+      color: getColor(p.type, colorMode),
       type: p.type,
       char: p.char,
       index: i,
@@ -298,7 +344,7 @@ renderer.domElement.addEventListener("mousemove", (e) => {
   rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
   prevMouse = { x: e.clientX, y: e.clientY };
   autoSpin = false;
-  document.getElementById("btnSpin").textContent = "[ auto-spin ]";
+  document.getElementById("btnSpin").textContent = "[ spin ]";
 });
 
 renderer.domElement.addEventListener("mouseup", () => {
@@ -318,15 +364,15 @@ renderer.domElement.addEventListener(
   { passive: true },
 );
 
-renderer.domElement.addEventListener("touchmove", (e) => {
-  if (!isDragging) return;
-  rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
-  rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
-  rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
-  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  autoSpin = false;
-  document.getElementById("btnSpin").textContent = "[auto-spin]";
-});
+// renderer.domElement.addEventListener("touchmove", (e) => {
+//   if (!isDragging) return;
+//   rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
+//   rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
+//   rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
+//   prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+//   autoSpin = false;
+//   document.getElementById("btnSpin").textContent = "[auto-spin]";
+// });
 
 renderer.domElement.addEventListener("touchend", () => {
   isDragging = false;
@@ -337,14 +383,14 @@ renderer.domElement.addEventListener("touchend", () => {
 document.getElementById("btnSpin").addEventListener("click", () => {
   autoSpin = !autoSpin;
   document.getElementById("btnSpin").textContent = autoSpin
-    ? "[ stop spin ]"
-    : "[ auto-spin ]";
+    ? "[ stop ]"
+    : "[ spin ]";
 });
 
 // cycle through colors
 document.getElementById("btnColor").addEventListener("click", () => {
   colorMode = (colorMode + 1) % 3;
-  const labels = ["[ color mode ]", "[ rainbow ]", "[ amber ]"];
+  const labels = ["[ red ]", "[ blue ]", "[ mixed ]"];
   document.getElementById("btnColor").textContent = labels[colorMode];
   // clear the color chache since colors have changed
   Object.keys(textureCache).forEach((k) => {
@@ -354,11 +400,32 @@ document.getElementById("btnColor").addEventListener("click", () => {
   buildSprites();
 });
 
-// grow button
-document.getElementById("btnGrow").addEventListener("click", () => {
-  targetGrow = targetGrow < 1.5 ? 1.5 : 1.0;
-  document.getElementById("btnGrow").textContent =
-    targetGrow > 1 ? "[ shrink ]" : "[ grow ]";
+renderer.domElement.addEventListener("wheel", (e) => {
+  cameraRadius += e.deltaY * 0.05;
+  cameraRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cameraRadius));
+});
+
+let lastPinchDist = null;
+
+renderer.domElement.addEventListener("touchmove", (e) => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (lastPinchDist !== null) {
+      cameraRadius -= (dist - lastPinchDist) * 0.1;
+      cameraRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cameraRadius));
+    }
+    lastPinchDist - dist;
+  }
+
+  if (!isDragging) return;
+  rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
+  rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
+  rotX = Math.max(-0.8, Math.min(0.8, rotX)); // clamp so you cant flip upside down
+  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  autoSpin = false;
+  document.getElementById("btnSpin").textContent = "[auto-spin]";
 });
 
 // resize
@@ -371,13 +438,12 @@ window.addEventListener("resize", () => {
 // camera orbit
 //  this function converts (rotX, rotY) angles into a camera position on a sphere.
 //  the camera always looks at the center of the plant
-function updateCamera() {
-  const radius = 22;
 
+function updateCamera() {
   // spherical coordinates to cartesian
-  const cx = Math.sin(rotY) * Math.cos(rotX) * radius;
-  const cy = Math.sin(rotX) * radius + 6;
-  const cz = Math.cos(rotY) * Math.cos(rotX) * radius;
+  const cx = Math.sin(rotY) * Math.cos(rotX) * cameraRadius;
+  const cy = Math.sin(rotX) * cameraRadius + 6;
+  const cz = Math.cos(rotY) * Math.cos(rotX) * cameraRadius;
 
   camera.position.set(cx, cy, cz);
   camera.lookAt(0, 6, 0);
@@ -393,7 +459,7 @@ function animate() {
   if (autoSpin) rotY += 0.003;
 
   // smoothly change the grow factor
-  growFactor += (targetGrow - growFactor) * 0.04;
+  // growFactor += (targetGrow - growFactor) * 0.04;
 
   spriteData.forEach((d, i) => {
     const { sprite, basePos, type } = d;
@@ -416,7 +482,7 @@ function animate() {
     // const py = basePos.y * growFactor;
 
     const px = basePos.x;
-    const py = basePos.y * growFactor;
+    const py = basePos.y;
     const pz = basePos.z;
 
     sprite.position.set(px, py, pz);
