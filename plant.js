@@ -240,9 +240,9 @@ const COLORS = {
   blue: {
     stem: "#4a9e5c",
     leaf: "#3dcc6a",
-    flowerFirst: "#163ead",
-    flowerSecond: "#a65cd8",
-    flowerThird: "#a984ff",
+    flowerFirst: "#005296",
+    flowerSecond: "#328bd4",
+    flowerThird: "#8dcbe4",
     branch: "#4a9e5c",
     soil: "#5c4033",
   },
