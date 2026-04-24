@@ -26,11 +26,13 @@ body {
 
 button {
   background: none;
-  /* border: 1px solid #3a6a3a; */
-  border: none;
+  border: 1px solid #3a6a3a;
+  /* border: none; */
+  padding: 6px 8px;
   color: #7cfc80;
   cursor: pointer;
   font-family: monospace;
+  justify-content: center;
 }
 
 .header-container {
