@@ -446,7 +446,7 @@ function animate() {
   requestAnimationFrame(animate); // schedule the next frame
   time += 0.012;
 
-  if (autoSpin) rotY += 0.0025;
+  if (autoSpin) rotY += 0.002;
 
   spriteData.forEach((d, i) => {
     const { sprite, basePos, type } = d;
