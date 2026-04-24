@@ -356,6 +356,7 @@ renderer.domElement.addEventListener(
 
 renderer.domElement.addEventListener("touchend", () => {
   isDragging = false;
+  lastPinchDist = null;
 });
 
 // button handlers
@@ -395,7 +396,7 @@ renderer.domElement.addEventListener("touchmove", (e) => {
       cameraRadius -= (dist - lastPinchDist) * 0.1;
       cameraRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cameraRadius));
     }
-    lastPinchDist - dist;
+    lastPinchDist = dist;
   }
 
   if (!isDragging) return;
