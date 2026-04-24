@@ -11,6 +11,7 @@ const camera = new THREE.PerspectiveCamera(
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
+renderer.domElement.style.touchAction = "none";
 document.body.appendChild(renderer.domElement);
 
 let autoSpin = true;
@@ -345,13 +346,53 @@ renderer.domElement.addEventListener("mouseleave", () => {
 });
 
 // touch
+let lastPinchDist = null;
 renderer.domElement.addEventListener(
   "touchstart",
   (e) => {
-    isDragging = true;
-    prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    // Prevent default browser behavior (scrolling/native zoom)
+    if (e.cancelable) e.preventDefault();
+
+    if (e.touches.length === 1) {
+      isDragging = true;
+      prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.touches.length === 2) {
+      isDragging = false; // Stop rotating while pinching
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+    }
   },
-  { passive: true },
+  { passive: false },
+); // Must be false to allow preventDefault()
+
+renderer.domElement.addEventListener(
+  "touchmove",
+  (e) => {
+    if (e.cancelable) e.preventDefault();
+
+    if (e.touches.length === 2) {
+      // Handle Pinch Zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (lastPinchDist !== null) {
+        // Sensitivity factor (0.05 - 0.1 usually feels good)
+        const delta = dist - lastPinchDist;
+        cameraRadius -= delta * 0.1;
+        cameraRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cameraRadius));
+      }
+      lastPinchDist = dist;
+    } else if (e.touches.length === 1 && isDragging) {
+      // Handle Rotation
+      rotY += (e.touches[0].clientX - prevMouse.x) * 0.012;
+      rotX += (e.touches[0].clientY - prevMouse.y) * 0.008;
+      rotX = Math.max(0.1, Math.min(0.8, rotX));
+      prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  },
+  { passive: false },
 );
 
 renderer.domElement.addEventListener("touchend", () => {
@@ -383,27 +424,6 @@ document.getElementById("btnColor").addEventListener("click", () => {
 renderer.domElement.addEventListener("wheel", (e) => {
   cameraRadius += e.deltaY * 0.05;
   cameraRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cameraRadius));
-});
-
-let lastPinchDist = null;
-
-renderer.domElement.addEventListener("touchmove", (e) => {
-  if (e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (lastPinchDist !== null) {
-      cameraRadius -= (dist - lastPinchDist) * 0.1;
-      cameraRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cameraRadius));
-    }
-    lastPinchDist = dist;
-  }
-
-  if (!isDragging) return;
-  rotY += (e.touches[0].clientX - prevMouse.x) * 0.012; // horizontal drag
-  rotX += (e.touches[0].clientY - prevMouse.y) * 0.008; // vertical drag
-  rotX = Math.max(0.1, Math.min(0.8, rotX)); // so you cant flip upside down
-  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 });
 
 // resize
