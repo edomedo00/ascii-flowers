@@ -424,10 +424,10 @@ renderer.domElement.addEventListener("wheel", (e) => {
 
 // resize
 window.addEventListener("resize", () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
 function updateCamera() {
